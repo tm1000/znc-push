@@ -92,10 +92,6 @@ class CPushMod : public CModule
 		// User object
 		CUser *user;
 
-		//Network Object
-		//CIRCNetwork *pNetwork;
-		//CIRCNetwork* pNetwork = m_Module.GetNetwork();
-
 		// Configuration options
 		MCString options;
 		MCString defaults;
@@ -136,6 +132,7 @@ class CPushMod : public CModule
 			defaults["custom_host"] = "";
 			defaults["custom_url"] = "";
 			defaults["debug"] = "off";
+			defaults["deep_debug"] = "off";
 		}
 		virtual ~CPushMod() {}
 
@@ -305,7 +302,7 @@ class CPushMod : public CModule
 			}
 			else if (service == "custom")
 			{
-				if(options["custom_url"] == "" || options["custom_host"] == "")
+				if(options["username"] == "" || options["custom_url"] == "" || options["custom_host"] == "")
 				{
 					PutModule("Error: custom_url or custom_host not set");
 					return;
@@ -313,6 +310,7 @@ class CPushMod : public CModule
 				service_host = options["custom_host"];
 				service_url = options["custom_url"];
 
+				params["email"] = options["username"];
 				params["event"] = title;
 				params["description"] = short_message;
 				params["url"] = uri;
@@ -631,6 +629,41 @@ class CPushMod : public CModule
 			if (expression != "all")
 			{
 				return eval(expression, context, nick, message);
+			}
+
+			if(options["deep_debug"] == "on") {
+			if(!away_only())
+			{
+				PutDebug("away_only is set to false");
+			}
+			else if(!client_count_less_than())
+			{
+				PutDebug("client_count_less_than is set to false");
+			}
+			else if(!highlight(message))
+			{
+				PutDebug("highlight is false");
+			}
+			else if(!idle())
+			{
+				PutDebug("idle is set to false");
+			}
+			else if(!last_active(context))
+			{
+				PutDebug("last_active is set to false");
+			}
+			else if(!last_notification(context))
+			{
+				PutDebug("last_notification is set to false");
+			}
+			else if(!nick_blacklist(nick))
+			{
+				PutDebug("nick_blacklist is set to false");
+			}
+			else if(!replied(context))
+			{
+				PutDebug("replied is set to false");
+			}
 			}
 
 			return away_only()
