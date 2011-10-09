@@ -18,13 +18,8 @@
 #include "znc/FileUtils.h"
 #include "znc/IRCNetwork.h"
 
-#if (!defined(VERSION_MAJOR) || !defined(VERSION_MINOR) || (VERSION_MAJOR == 0 && VERSION_MINOR < 72))
-#error This module needs ZNC 0.072 or newer.
-#endif
-
-// Handle versions of ZNC older than 0.090 by disabling the away_only condition
-#if VERSION_MAJOR == 0 && VERSION_MINOR >= 90
-#define PUSH_AWAY
+#if (!defined(VERSION_MAJOR) || !defined(VERSION_MINOR) || (VERSION_MAJOR == 0 && VERSION_MINOR < 203))
+#error This module needs ZNC 0.203 or newer.
 #endif
 
 // Forward declaration
@@ -125,9 +120,7 @@ class CPushMod : public CModule
 			defaults["query_conditions"] = "all";
 
 			// Notification conditions
-#ifdef PUSH_AWAY
 			defaults["away_only"] = "no";
-#endif
 			defaults["client_count_less_than"] = "0";
 			defaults["highlight"] = "";
 			defaults["idle"] = "0";
@@ -140,6 +133,8 @@ class CPushMod : public CModule
 			defaults["message_length"] = "100";
 			defaults["message_uri"] = "";
 
+			defaults["custom_host"] = "";
+			defaults["custom_url"] = "";
 			defaults["debug"] = "off";
 		}
 		virtual ~CPushMod() {}
@@ -218,7 +213,10 @@ class CPushMod : public CModule
 			replace["{nick}"] = nick.GetNick();
 			replace["{datetime}"] = CString(iso8601);
 			replace["{unixtime}"] = CString(time(NULL));
+			replace["{message}"] = short_message;
+			replace["{title}"] = title;
 			CString uri = expand(options["message_uri"], replace);
+			//CString custom_query = expand(options["custom_query"],replace);
 
 			// Set up the connection profile
 			CString service = options["service"];
@@ -304,6 +302,22 @@ class CPushMod : public CModule
 				params["event"] = title;
 				params["description"] = short_message;
 				params["url"] = uri;
+			}
+			else if (service == "custom")
+			{
+				if(options["custom_url"] == "" || options["custom_host"] == "")
+				{
+					PutModule("Error: custom_url or custom_host not set");
+					return;
+				}
+				service_host = options["custom_host"];
+				service_url = options["custom_url"];
+
+				params["event"] = title;
+				params["description"] = short_message;
+				params["url"] = uri;
+				use_port = 80;
+				use_ssl = false;
 			}
 			else
 			{
@@ -448,12 +462,8 @@ class CPushMod : public CModule
 		 */
 		bool away_only()
 		{
-#ifdef PUSH_AWAY
 			CString value = options["away_only"].AsLower();
 			return value != "yes" || m_pNetwork->IsIRCAway();
-#else
-			return true
-#endif
 		}
 
 		/**
@@ -905,6 +915,10 @@ class CPushMod : public CModule
 						else if (value == "prowl")
 						{
 							PutModule("Note: Prowl requires setting the 'secret' option");
+						}
+						else if (value == "custom")
+						{
+							PutModule("Note: requires stuffs");
 						}
 						else
 						{
